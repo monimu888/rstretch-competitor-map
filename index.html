@@ -9,7 +9,7 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Helvetica Neue', 'Noto Sans JP', sans-serif; }
-  #map { width: 100%; height: 100vh; }
+  #map { width: 100%; height: 100vh; height: 100dvh; }
 
   .legend {
     background: rgba(255,255,255,0.95);
@@ -196,9 +196,9 @@
     .legend-item { padding: 1px 2px; gap: 5px; }
     .legend-divider { margin: 3px 0; }
 
-    /* 商圏内店舗パネル: 右下カード（JSで凡例と下端を揃える） */
+    /* 商圏内店舗パネル: 右下カード（map内absoluteで凡例と同じ座標系） */
     .nearby-panel {
-      position: fixed;
+      position: absolute;
       top: auto;
       bottom: 10px;
       left: auto;
@@ -264,6 +264,12 @@
 
 <script>
 const map = L.map('map', { zoomControl: true }).setView([35.00, 135.82], 11);
+
+// 商圏パネルをmap内に移動（凡例と同じ座標系にする）
+const nearbyPanelEl = document.getElementById('nearbyPanel');
+document.getElementById('map').appendChild(nearbyPanelEl);
+L.DomEvent.disableClickPropagation(nearbyPanelEl);
+L.DomEvent.disableScrollPropagation(nearbyPanelEl);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap contributors',
@@ -677,16 +683,6 @@ legend.onAdd = function() {
 
     content.innerHTML = html;
     panel.classList.add('visible');
-    alignNearbyToLegend();
-  }
-
-  function alignNearbyToLegend() {
-    if (window.innerWidth > 768) return;
-    const legend = document.querySelector('.legend');
-    const panel = document.getElementById('nearbyPanel');
-    if (!legend || !panel) return;
-    const legendBottom = window.innerHeight - legend.getBoundingClientRect().bottom;
-    panel.style.bottom = legendBottom + 'px';
   }
 
   function updateCircleStyles() {
