@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ストレッチ・ボディケア 競合マップ</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Helvetica Neue', 'Noto Sans JP', sans-serif; }
+  #map { width: 100%; height: 100vh; }
+
+  .legend {
+    background: rgba(255,255,255,0.95);
+    padding: 14px 18px;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    font-size: 12px;
+    line-height: 1.8;
+    max-width: 260px;
+  }
+  .legend h4 {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: #1a2444;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 4px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: background 0.15s;
+  }
+  .legend-item:hover {
+    background: rgba(0,0,0,0.05);
+  }
+  .legend-item.active {
+    background: rgba(201,168,76,0.15);
+  }
+  .legend-item.dimmed {
+    opacity: 0.3;
+  }
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 2px solid rgba(0,0,0,0.2);
+  }
+  .legend-divider {
+    height: 1px;
+    background: #eee;
+    margin: 6px 0;
+  }
+  .legend-section {
+    font-size: 10px;
+    font-weight: 700;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  .blank-zone-label {
+    background: rgba(201, 168, 76, 0.9);
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
+
+  .store-popup { font-size: 12px; line-height: 1.6; }
+  .store-popup strong { font-size: 13px; }
+  .store-popup .brand { color: #888; font-size: 11px; }
+
+  .layer-control {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+    background: rgba(255,255,255,0.95);
+    padding: 12px 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    font-size: 12px;
+  }
+
+  /* 商圏内店舗パネル */
+  .nearby-panel {
+    position: absolute;
+    top: 10px;
+    right: 200px;
+    z-index: 999;
+    background: rgba(255,255,255,0.97);
+    padding: 0;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+    font-size: 12px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    width: 300px;
+    display: none;
+  }
+  .nearby-panel.visible { display: block; }
+  .nearby-panel-header {
+    position: sticky;
+    top: 0;
+    background: #1a2444;
+    color: #fff;
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 8px 8px 0 0;
+  }
+  .nearby-store-group {
+    padding: 10px 14px;
+    border-bottom: 1px solid #eee;
+  }
+  .nearby-store-group:last-child { border-bottom: none; }
+  .nearby-store-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1a2444;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .nearby-store-title .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .nearby-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 0;
+    color: #444;
+    line-height: 1.4;
+  }
+  .nearby-item .item-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .nearby-item .item-name { font-weight: 500; }
+  .nearby-item .item-dist {
+    margin-left: auto;
+    color: #999;
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+  .nearby-empty {
+    color: #aaa;
+    font-style: italic;
+    padding: 3px 0;
+  }
+
+  /* ===== MOBILE ===== */
+  @media (max-width: 768px) {
+    .layer-control {
+      top: auto;
+      bottom: 10px;
+      right: 10px;
+      padding: 8px 12px;
+      font-size: 11px;
+      max-width: 180px;
+    }
+    .layer-control h4 { font-size: 11px; margin-bottom: 6px; }
+    .layer-control label { margin-bottom: 2px; }
+    .layer-control input[type="checkbox"] { width: 16px; height: 16px; }
+
+    .legend {
+      max-width: 220px;
+      padding: 10px 14px;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+    .legend h4 { font-size: 11px; }
+    .legend-section { font-size: 9px; }
+    .legend-dot { width: 10px; height: 10px; }
+
+    .nearby-panel {
+      position: fixed;
+      top: auto;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      max-height: 45vh;
+      border-radius: 14px 14px 0 0;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
+    }
+    .nearby-panel-header {
+      border-radius: 14px 14px 0 0;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nearby-panel-header::after {
+      content: '';
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 36px;
+      height: 4px;
+      background: rgba(255,255,255,0.4);
+      border-radius: 2px;
+    }
+    .nearby-store-group { padding: 8px 14px; }
+    .nearby-store-title { font-size: 12px; }
+    .nearby-item { font-size: 11px; }
+
+    .blank-zone-label { font-size: 10px; padding: 3px 8px; }
+  }
+
+  .layer-control h4 {
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #1a2444;
+  }
+  .layer-control label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    cursor: pointer;
+  }
+  .layer-control input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+  }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="nearby-panel" id="nearbyPanel">
+  <div class="nearby-panel-header">商圏内の競合店舗</div>
+  <div id="nearbyContent"></div>
+</div>
+
+<div class="layer-control" id="layerControl">
+  <h4>表示切替</h4>
+  <label><input type="checkbox" id="toggleStretch" checked> ストレッチ専門店</label>
+  <label><input type="checkbox" id="toggleBodycare" checked> ボディケアチェーン</label>
+  <label><input type="checkbox" id="toggleRstretch" checked> Rストレッチ</label>
+  <label><input type="checkbox" id="toggleBlanks" checked> 空白エリア</label>
+  <label><input type="checkbox" id="toggleRadius" checked> 商圏3km円</label>
+</div>
+
+<script>
+const map = L.map('map', { zoomControl: true }).setView([35.00, 135.82], 11);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors',
+  maxZoom: 18,
+}).addTo(map);
+
+// ========== MARKER FACTORY ==========
+function makeIcon(color, size) {
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      width:${size}px; height:${size}px; border-radius:50%;
+      background:${color}; border:2.5px solid rgba(255,255,255,0.9);
+      box-shadow:0 2px 6px rgba(0,0,0,0.3);
+    "></div>`,
+    iconSize: [size, size],
+    iconAnchor: [size/2, size/2],
+  });
+}
+
+const icons = {
+  rstretch: makeIcon('#c9a84c', 16),
+  drstretch: makeIcon('#d32f2f', 13),
+  stretchOther: makeIcon('#ff8f00', 11),
+  rirakuru: makeIcon('#7cb342', 10),
+  raffine: makeIcon('#5c6bc0', 10),
+  otherBodycare: makeIcon('#26a69a', 9),
+};
+
+// ========== STORE DATA ==========
+
+// --- Rストレッチ ---
+const rstretchStores = [
+  { name: '伏見桃山店（本店）', lat: 34.9341, lng: 135.7644, note: '2F / 京阪伏見桃山駅 徒歩1分' },
+  { name: '二条店', lat: 35.0118, lng: 135.7375, note: '5F / JR二条駅 徒歩1分' },
+  { name: '長岡天神店（FC）', lat: 34.9270, lng: 135.6932, note: '3F / 阪急長岡天神駅 徒歩7分' },
+  { name: '北大路店', lat: 35.0453, lng: 135.7560, note: '2F / 地下鉄北大路駅 徒歩5分' },
+];
+
+// --- Dr.Stretch ---
+const drstretchStores = [
+  { name: 'イオンモールKYOTO店', lat: 34.9808, lng: 135.7613, note: '京都駅八条口 / モール3F' },
+  { name: '京都寺町通り店', lat: 35.0046, lng: 135.7676, note: '四条河原町 / 路面1F' },
+  { name: '北大路店', lat: 35.0456, lng: 135.7562, note: '北大路駅 徒歩1分 / 路面1F' },
+  { name: 'イオンモール京都五条店', lat: 34.9940, lng: 135.7210, note: '右京区 / モール3F' },
+  { name: 'MOMOテラス店', lat: 34.9512, lng: 135.7955, note: '伏見区六地蔵 / モール2F' },
+  { name: 'イオンモール高の原店', lat: 34.7360, lng: 135.7820, note: '木津川市 / モール4F' },
+  { name: '洛北阪急スクエア店', lat: 35.0410, lng: 135.7810, note: '左京区 / 2026年春NEW' },
+  { name: 'イオンモール草津店', lat: 34.9700, lng: 135.9550, note: '滋賀県草津市 / モール3F' },
+];
+
+// --- 他のストレッチ専門店 ---
+const otherStretchStores = [
+  { name: 'ストレッチアップ 伏見桃山店', lat: 34.9345, lng: 135.7636, brand: 'ストレッチアップ', note: '定額制あり / 9,130円/60分' },
+  { name: 'SSS 京都四条烏丸Studio', lat: 35.0029, lng: 135.7580, brand: 'SSS', note: '四条烏丸スタービル4F / 5,500円/60分' },
+  { name: '全力ストレッチ 京都烏丸店', lat: 35.0035, lng: 135.7572, brand: '全力ストレッチ', note: '完全個室・女性Staff / 13,200円/60分' },
+  { name: '凛（RIN）', lat: 35.0120, lng: 135.7385, brand: '凛', note: 'JR二条駅NKビル3F / 6,600円/60分' },
+  { name: 'コアマックス 一乗寺店', lat: 35.0440, lng: 135.7940, brand: 'コアマックス', note: '左京区 / 6,600円/50分' },
+  { name: 'プロストレッチ', lat: 34.9990, lng: 135.7170, brand: 'プロストレッチ', note: '右京区西院 / 個人店' },
+  { name: 'かみかつら整骨院', lat: 34.9820, lng: 135.6920, brand: 'かみかつら整骨院', note: '西京区 / 整骨院併設 / 6,600円/60分' },
+  { name: 'ストレッチプロ 横大路店', lat: 34.9200, lng: 135.7530, brand: 'ストレッチプロ', note: '伏見区丹波橋エリア' },
+  { name: 'クレアコンディショニング', lat: 35.0260, lng: 135.7550, brand: 'クレア', note: '上京区 / 3,300円/30分〜' },
+  { name: 'ベースコンディショニングラボ', lat: 35.0010, lng: 135.7570, brand: 'ベースCL', note: '中京区 / 整体+トレーニング / 11,000円/60分' },
+  // 滋賀
+  { name: 'ストレチックス 草津店', lat: 35.0150, lng: 135.9578, brand: 'ストレチックス', note: '草津駅西口 徒歩3分 / 7,800円/50分' },
+  { name: 'ストレチックス 近江八幡店', lat: 35.1245, lng: 136.1012, brand: 'ストレチックス', note: '近江八幡 / 7,800円/50分' },
+  { name: '全力ストレッチ 滋賀草津店', lat: 35.0148, lng: 135.9620, brand: '全力ストレッチ', note: '草津駅 徒歩6分 / 13,200円/60分' },
+];
+
+// --- りらくる ---
+const rirakuruStores = [
+  { name: 'りらくる 京都西大路五条店', lat: 34.9944, lng: 135.7278 },
+  { name: 'りらくる 京都太秦店', lat: 35.0167, lng: 135.7078 },
+  { name: 'りらくる 京都南店', lat: 34.9630, lng: 135.7570 },
+  { name: 'りらくる 千本丸太町店', lat: 35.0200, lng: 135.7470 },
+  { name: 'りらくる 京都山科店', lat: 34.9720, lng: 135.8220 },
+  { name: 'りらくる 京都伏見店', lat: 34.9380, lng: 135.7600 },
+  // 滋賀
+  { name: 'りらくる 栗東店', lat: 35.0220, lng: 135.9930 },
+  { name: 'りらくる 甲賀水口店', lat: 34.9660, lng: 136.1650 },
+  { name: 'りらくる 堅田店', lat: 35.1300, lng: 135.9180 },
+  { name: 'りらくる 守山えんま堂店', lat: 35.0590, lng: 136.0020 },
+  { name: 'りらくる 彦根店', lat: 35.2760, lng: 136.2520 },
+];
+
+// --- ラフィネ ---
+const raffineStores = [
+  // 京都
+  { name: 'ラフィネ 京都ファミリー店', lat: 35.0050, lng: 135.7180 },
+  { name: 'ラフィネ コトチカ四条駅店', lat: 35.0015, lng: 135.7590 },
+  { name: 'ラフィネ 京都ヨドバシ店', lat: 34.9870, lng: 135.7580 },
+  { name: 'ラフィネ 京都三条店', lat: 35.0080, lng: 135.7670 },
+  { name: 'ラフィネ イオンモール北大路店', lat: 35.0460, lng: 135.7570 },
+  { name: 'ラフィネ コトチカ御池店', lat: 35.0100, lng: 135.7590 },
+  { name: 'ラフィネ ラクト山科店', lat: 34.9700, lng: 135.8190 },
+  { name: 'ラフィネ イオンモール久御山店', lat: 34.8860, lng: 135.7340 },
+  { name: 'ラフィネ イオンモール高の原店', lat: 34.7358, lng: 135.7818 },
+  { name: 'ラフィネプリュス 京都ポルタ店', lat: 34.9855, lng: 135.7588 },
+  { name: 'ラフィネプリュス 京都五条店', lat: 34.9940, lng: 135.7215 },
+  { name: 'REFLE 京都伊勢丹店', lat: 34.9858, lng: 135.7585 },
+  { name: 'ラフィネ イオン洛南店', lat: 34.9640, lng: 135.7440 },
+  // 滋賀
+  { name: 'ラフィネ アルプラザ水口店', lat: 34.9660, lng: 136.1645 },
+  { name: 'ラフィネ アルプラザ草津店', lat: 35.0160, lng: 135.9610 },
+  { name: 'ラフィネ イオン近江八幡店', lat: 35.1250, lng: 136.1000 },
+  { name: 'ラフィネ 西友長浜楽市店', lat: 35.3880, lng: 136.2690 },
+  { name: 'ラフィネ イオンモール草津店', lat: 34.9700, lng: 135.9548 },
+  { name: 'ラフィネ フォレオ大津一里山店', lat: 34.9600, lng: 135.9090 },
+];
+
+// --- 他ボディケアチェーン（ベアハグ・ゆめみし・手もみ総本店・ヴィラ・京都ほぐし堂・てもみん・ほぐしま専科・なご夢） ---
+const otherBodycareStores = [
+  // ベアハグ（1店）
+  { name: 'ベアハグ 京都祇園店', brand: 'ベアハグ', note: 'アパホテル内 / 観光客向け', lat: 35.0030, lng: 135.7750 },
+  // ゆめみし（9店）7,500円/60分
+  { name: 'ゆめみし 四条河原町店', brand: 'ゆめみし', note: '7,500円/60分', lat: 35.0044, lng: 135.7694 },
+  { name: 'ゆめみし 四条烏丸店', brand: 'ゆめみし', note: '7,500円/60分', lat: 35.0026, lng: 135.7588 },
+  { name: 'ゆめみし 四条大宮店', brand: 'ゆめみし', note: '7,500円/60分', lat: 35.0019, lng: 135.7458 },
+  { name: 'ゆめみし 西院店', brand: 'ゆめみし', note: '7,500円/60分', lat: 35.0011, lng: 135.7312 },
+  { name: 'ゆめみし 伏見大手筋店', brand: 'ゆめみし', note: '7,500円/60分', lat: 34.9350, lng: 135.7604 },
+  { name: 'ゆめみし 山科駅前店', brand: 'ゆめみし', note: '7,500円/60分', lat: 34.9895, lng: 135.8216 },
+  { name: 'ゆめみし 北山店', brand: 'ゆめみし', note: '7,500円/60分', lat: 35.0620, lng: 135.7587 },
+  { name: 'ゆめみし さがの温泉天山の湯店', brand: 'ゆめみし', note: '7,500円/60分', lat: 35.0230, lng: 135.6973 },
+  { name: 'ゆめみし JR草津駅店', brand: 'ゆめみし', note: '7,500円/60分 / 滋賀', lat: 35.0138, lng: 135.9607 },
+  // 手もみ総本店（7店）4,800円/60分
+  { name: '手もみ総本店 修学院店', brand: '手もみ総本店', note: '4,800円/60分', lat: 35.0472, lng: 135.7943 },
+  { name: '手もみ総本店 上鳥羽店', brand: '手もみ総本店', note: '4,800円/60分', lat: 34.9654, lng: 135.7537 },
+  { name: '手もみ総本店 洛西店', brand: '手もみ総本店', note: '4,800円/60分', lat: 34.9884, lng: 135.6937 },
+  { name: '手もみ総本店 京田辺店', brand: '手もみ総本店', note: '4,800円/60分', lat: 34.8124, lng: 135.7717 },
+  { name: '手もみ総本店 守山店', brand: '手もみ総本店', note: '4,800円/60分 / 滋賀', lat: 35.0597, lng: 135.9987 },
+  { name: '手もみ総本店 長浜店', brand: '手もみ総本店', note: '4,800円/60分 / 滋賀', lat: 35.3821, lng: 136.2707 },
+  { name: '手もみ総本店 瀬田店', brand: '手もみ総本店', note: '4,800円/60分 / 滋賀', lat: 34.9584, lng: 135.9296 },
+  // ヴィラ（5店）3,760〜4,950円/60分
+  { name: 'ヴィラ 京都伏見店', brand: 'ヴィラ', note: '3,760〜4,950円/60分', lat: 34.9345, lng: 135.7457 },
+  { name: 'ヴィラ 宇治小倉店', brand: 'ヴィラ', note: '3,760〜4,950円/60分', lat: 34.8914, lng: 135.7697 },
+  { name: 'ヴィラ 城陽店', brand: 'ヴィラ', note: '3,760〜4,950円/60分', lat: 34.8571, lng: 135.7778 },
+  { name: 'ヴィラ 彦根店', brand: 'ヴィラ', note: '3,760〜4,950円/60分 / 滋賀', lat: 35.2710, lng: 136.2451 },
+  { name: 'ヴィラ 大津瀬田店', brand: 'ヴィラ', note: '3,760〜4,950円/60分 / 滋賀', lat: 34.9568, lng: 135.9320 },
+  // 京都ほぐし堂（4店）3,980円/60分
+  { name: '京都ほぐし堂 ポルタ京都駅前店', brand: '京都ほぐし堂', note: '3,980円/60分', lat: 34.9858, lng: 135.7584 },
+  { name: '京都ほぐし堂 四条烏丸店', brand: '京都ほぐし堂', note: '3,980円/60分', lat: 35.0026, lng: 135.7558 },
+  { name: '京都ほぐし堂 三条河原町店', brand: '京都ほぐし堂', note: '3,980円/60分', lat: 35.0095, lng: 135.7701 },
+  { name: '京都ほぐし堂 四条寺町店', brand: '京都ほぐし堂', note: '3,980円/60分', lat: 35.0029, lng: 135.7660 },
+  // てもみん（3店）6,600円/60分
+  { name: 'てもみん 京都三条大橋店', brand: 'てもみん', note: '6,600円/60分', lat: 35.0089, lng: 135.7710 },
+  { name: 'てもみん 京都祇園店', brand: 'てもみん', note: '6,600円/60分', lat: 35.0037, lng: 135.7752 },
+  { name: 'てもみん 京都四条烏丸店', brand: 'てもみん', note: '6,600円/60分', lat: 35.0051, lng: 135.7619 },
+  // ほぐしま専科（5店）2,980円/60分 ※滋賀のみ
+  { name: 'ほぐしま専科 近江八幡店', brand: 'ほぐしま専科', note: '2,980円/60分 / 滋賀', lat: 35.1295, lng: 136.0954 },
+  { name: 'ほぐしま専科 八日市店', brand: 'ほぐしま専科', note: '2,980円/60分 / 滋賀', lat: 35.1039, lng: 136.2146 },
+  { name: 'ほぐしま専科 五個荘店', brand: 'ほぐしま専科', note: '2,980円/60分 / 滋賀', lat: 35.1484, lng: 136.1857 },
+  { name: 'ほぐしま専科 大津瀬田店', brand: 'ほぐしま専科', note: '2,980円/60分 / 滋賀', lat: 34.9725, lng: 135.9094 },
+  { name: 'ほぐしま専科 栗東出庭店', brand: 'ほぐしま専科', note: '2,980円/60分 / 滋賀', lat: 35.0359, lng: 136.0071 },
+  // なご夢（3店）4,100円/60分
+  { name: 'なご夢 西大路店', brand: 'なご夢', note: '4,100円/60分', lat: 34.9925, lng: 135.7311 },
+  { name: 'なご夢 五条天神川店', brand: 'なご夢', note: '4,100円/60分', lat: 34.9968, lng: 135.7165 },
+  { name: 'なご夢 上桂上野橋店', brand: 'なご夢', note: '4,100円/60分', lat: 34.9960, lng: 135.7035 },
+];
+
+// ========== ALL STORES (for nearby search) ==========
+const brandColors = {
+  rstretch: '#c9a84c', drstretch: '#d32f2f', otherStretch: '#ff8f00',
+  rirakuru: '#7cb342', raffine: '#5c6bc0', otherBodycare: '#26a69a',
+  candidateYamashina: '#c9a84c', candidateOtsu: '#c9a84c',
+};
+
+// 候補エリア定義（商圏半径がブランドと異なる）
+const candidateAreas = {
+  candidateYamashina: { label: '候補: 山科', lat: 34.970, lng: 135.822, radiusM: 2500 },
+  candidateOtsu: { label: '候補: 大津', lat: 35.005, lng: 135.868, radiusM: 4000 },
+};
+
+const allStoresIndex = [
+  ...rstretchStores.map(s => ({ ...s, brandKey: 'rstretch', label: 'Rストレッチ ' + s.name })),
+  ...drstretchStores.map(s => ({ ...s, brandKey: 'drstretch', label: 'Dr.Stretch ' + s.name })),
+  ...otherStretchStores.map(s => ({ ...s, brandKey: 'otherStretch', label: s.name })),
+  ...rirakuruStores.map(s => ({ ...s, brandKey: 'rirakuru', label: s.name })),
+  ...raffineStores.map(s => ({ ...s, brandKey: 'raffine', label: s.name })),
+  ...otherBodycareStores.map(s => ({ ...s, brandKey: 'otherBodycare', label: s.name })),
+];
+
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ========== LAYER GROUPS ==========
+const rstretchLayer = L.layerGroup();
+const drstretchLayer = L.layerGroup();
+const otherStretchLayer = L.layerGroup();
+const rirakuruLayer = L.layerGroup();
+const raffineLayer = L.layerGroup();
+const otherBodycareLayer = L.layerGroup();
+const blankLayer = L.layerGroup();
+const radiusLayer = L.layerGroup();
+
+// ブランド別の商圏円を管理
+const brandCircles = {
+  rstretch: [],
+  drstretch: [],
+  otherStretch: [],
+  rirakuru: [],
+  raffine: [],
+  otherBodycare: [],
+  candidateYamashina: [],
+  candidateOtsu: [],
+};
+
+// ========== ADD MARKERS ==========
+
+// Rストレッチ
+rstretchStores.forEach(s => {
+  const m = L.marker([s.lat, s.lng], { icon: icons.rstretch })
+    .bindPopup(`<div class="store-popup"><strong>Rストレッチ ${s.name}</strong><br>${s.note}</div>`);
+  rstretchLayer.addLayer(m);
+  const c = L.circle([s.lat, s.lng], { radius: 3000, color: '#c9a84c', fillColor: '#c9a84c', fillOpacity: 0.06, weight: 1.5, dashArray: '6,4' });
+  c.addTo(radiusLayer);
+  brandCircles.rstretch.push(c);
+});
+
+// Dr.Stretch
+drstretchStores.forEach(s => {
+  const m = L.marker([s.lat, s.lng], { icon: icons.drstretch })
+    .bindPopup(`<div class="store-popup"><strong>Dr.Stretch ${s.name}</strong><br><span class="brand">ドクターストレッチ</span><br>${s.note}</div>`);
+  drstretchLayer.addLayer(m);
+  const c = L.circle([s.lat, s.lng], { radius: 3000, color: '#d32f2f', fillColor: '#d32f2f', fillOpacity: 0.04, weight: 1, dashArray: '4,4' });
+  c.addTo(radiusLayer);
+  brandCircles.drstretch.push(c);
+});
+
+// 他ストレッチ専門
+otherStretchStores.forEach(s => {
+  const m = L.marker([s.lat, s.lng], { icon: icons.stretchOther })
+    .bindPopup(`<div class="store-popup"><strong>${s.name}</strong><br><span class="brand">${s.brand}</span><br>${s.note}</div>`);
+  otherStretchLayer.addLayer(m);
+  const c = L.circle([s.lat, s.lng], { radius: 3000, color: '#ff8f00', fillColor: '#ff8f00', fillOpacity: 0.04, weight: 1, dashArray: '4,4' });
+  c.addTo(radiusLayer);
+  brandCircles.otherStretch.push(c);
+});
+
+// りらくる
+rirakuruStores.forEach(s => {
+  const m = L.marker([s.lat, s.lng], { icon: icons.rirakuru })
+    .bindPopup(`<div class="store-popup"><strong>${s.name}</strong><br><span class="brand">もみほぐし / 3,980円/60分</span></div>`);
+  rirakuruLayer.addLayer(m);
+  const c = L.circle([s.lat, s.lng], { radius: 3000, color: '#7cb342', fillColor: '#7cb342', fillOpacity: 0.04, weight: 1, dashArray: '4,4' });
+  c.addTo(radiusLayer);
+  brandCircles.rirakuru.push(c);
+});
+
+// ラフィネ
+raffineStores.forEach(s => {
+  const m = L.marker([s.lat, s.lng], { icon: icons.raffine })
+    .bindPopup(`<div class="store-popup"><strong>${s.name}</strong><br><span class="brand">ボディケア / 4,400円/40分〜</span></div>`);
+  raffineLayer.addLayer(m);
+  const c = L.circle([s.lat, s.lng], { radius: 3000, color: '#5c6bc0', fillColor: '#5c6bc0', fillOpacity: 0.04, weight: 1, dashArray: '4,4' });
+  c.addTo(radiusLayer);
+  brandCircles.raffine.push(c);
+});
+
+// 他ボディケアチェーン
+otherBodycareStores.forEach(s => {
+  const m = L.marker([s.lat, s.lng], { icon: icons.otherBodycare })
+    .bindPopup(`<div class="store-popup"><strong>${s.name}</strong><br><span class="brand">${s.brand}</span><br>${s.note}</div>`);
+  otherBodycareLayer.addLayer(m);
+  const c = L.circle([s.lat, s.lng], { radius: 3000, color: '#26a69a', fillColor: '#26a69a', fillOpacity: 0.03, weight: 0.8, dashArray: '4,4' });
+  c.addTo(radiusLayer);
+  brandCircles.otherBodycare.push(c);
+});
+
+// ========== BLANK ZONES ==========
+// 山科
+const yamashimaCircle = L.circle([34.970, 135.822], {
+  radius: 2500, color: '#c9a84c', fillColor: '#c9a84c',
+  fillOpacity: 0.12, weight: 2.5, dashArray: '8,6'
+});
+yamashimaCircle.addTo(blankLayer);
+brandCircles.candidateYamashina.push(yamashimaCircle);
+L.marker([34.970, 135.822], {
+  icon: L.divIcon({
+    className: '',
+    html: '<div class="blank-zone-label">山科 ── 競合空白</div>',
+    iconSize: [160, 24], iconAnchor: [80, 12]
+  })
+}).addTo(blankLayer);
+
+// 大津
+const otsuCircle = L.circle([35.005, 135.868], {
+  radius: 4000, color: '#c9a84c', fillColor: '#c9a84c',
+  fillOpacity: 0.12, weight: 2.5, dashArray: '8,6'
+});
+otsuCircle.addTo(blankLayer);
+brandCircles.candidateOtsu.push(otsuCircle);
+L.marker([35.005, 135.868], {
+  icon: L.divIcon({
+    className: '',
+    html: '<div class="blank-zone-label">大津 ── 34.5万人に競合ゼロ</div>',
+    iconSize: [220, 24], iconAnchor: [110, 12]
+  })
+}).addTo(blankLayer);
+
+// ========== ADD ALL TO MAP ==========
+[rstretchLayer, drstretchLayer, otherStretchLayer, rirakuruLayer, raffineLayer, otherBodycareLayer, blankLayer, radiusLayer].forEach(l => l.addTo(map));
+
+// ========== LEGEND ==========
+const legend = L.control({ position: 'bottomleft' });
+legend.onAdd = function() {
+  const div = L.DomUtil.create('div', 'legend');
+  div.innerHTML = `
+    <h4>競合マップ <span style="font-size:10px;font-weight:400;color:#999;">クリックで商圏ハイライト</span></h4>
+    <div class="legend-section">ストレッチ専門店</div>
+    <div class="legend-item" data-brand="rstretch"><div class="legend-dot" style="background:#c9a84c;"></div> Rストレッチ（4店舗）</div>
+    <div class="legend-item" data-brand="drstretch"><div class="legend-dot" style="background:#d32f2f;"></div> Dr.Stretch（8店舗）</div>
+    <div class="legend-item" data-brand="otherStretch"><div class="legend-dot" style="background:#ff8f00;"></div> 他ストレッチ専門（13店舗）</div>
+    <div class="legend-divider"></div>
+    <div class="legend-section">ボディケアチェーン（間接競合）</div>
+    <div class="legend-item" data-brand="rirakuru"><div class="legend-dot" style="background:#7cb342;"></div> りらくる（11店舗）</div>
+    <div class="legend-item" data-brand="raffine"><div class="legend-dot" style="background:#5c6bc0;"></div> ラフィネ（19店舗）</div>
+    <div class="legend-item" data-brand="otherBodycare"><div class="legend-dot" style="background:#26a69a;"></div> 他ボディケア（37店舗）</div>
+    <div class="legend-divider"></div>
+    <div class="legend-section">出店候補エリア（クリックで圏内店舗表示）</div>
+    <div class="legend-item" data-brand="candidateYamashina"><div class="legend-dot" style="background:transparent; border:2.5px dashed #c9a84c;"></div> 山科（半径2.5km）</div>
+    <div class="legend-item" data-brand="candidateOtsu"><div class="legend-dot" style="background:transparent; border:2.5px dashed #c9a84c;"></div> 大津（半径4km）</div>
+  `;
+
+  // 凡例クリックで商圏円をハイライト（複数選択対応）
+  const activeBrands = new Set();
+
+  const defaultStyles = {
+    rstretch:      { fillOpacity: 0.06, weight: 1.5 },
+    drstretch:     { fillOpacity: 0.04, weight: 1 },
+    otherStretch:  { fillOpacity: 0.04, weight: 1 },
+    rirakuru:      { fillOpacity: 0.04, weight: 1 },
+    raffine:       { fillOpacity: 0.04, weight: 1 },
+    otherBodycare: { fillOpacity: 0.03, weight: 0.8 },
+    candidateYamashina: { fillOpacity: 0.12, weight: 2.5 },
+    candidateOtsu:      { fillOpacity: 0.12, weight: 2.5 },
+  };
+
+  // ブランドキー → 表示用の店舗配列マッピング
+  const brandStoresMap = {
+    rstretch: rstretchStores.map(s => ({ ...s, label: 'Rストレッチ ' + s.name })),
+    drstretch: drstretchStores.map(s => ({ ...s, label: 'Dr.Stretch ' + s.name })),
+    otherStretch: otherStretchStores.map(s => ({ ...s, label: s.name })),
+    rirakuru: rirakuruStores.map(s => ({ ...s, label: s.name })),
+    raffine: raffineStores.map(s => ({ ...s, label: s.name })),
+    otherBodycare: otherBodycareStores.map(s => ({ ...s, label: s.name })),
+  };
+
+  function updateNearbyPanel() {
+    const panel = document.getElementById('nearbyPanel');
+    const content = document.getElementById('nearbyContent');
+
+    if (activeBrands.size === 0) {
+      panel.classList.remove('visible');
+      content.innerHTML = '';
+      return;
+    }
+
+    let html = '';
+    activeBrands.forEach(selectedBrand => {
+      // 候補エリアの場合
+      const cand = candidateAreas[selectedBrand];
+      if (cand) {
+        const radiusKm = cand.radiusM / 1000;
+        const nearby = allStoresIndex
+          .map(s => ({ ...s, dist: haversineKm(cand.lat, cand.lng, s.lat, s.lng) }))
+          .filter(s => s.dist <= radiusKm)
+          .sort((a, b) => a.dist - b.dist);
+
+        html += `<div class="nearby-store-group">`;
+        html += `<div class="nearby-store-title"><div class="dot" style="background:${brandColors[selectedBrand]}; border:2px dashed rgba(0,0,0,0.3);"></div>${cand.label}（半径${radiusKm}km圏内）</div>`;
+        if (nearby.length === 0) {
+          html += `<div class="nearby-empty">圏内に競合なし</div>`;
+        } else {
+          nearby.forEach(n => {
+            const distStr = n.dist < 1 ? Math.round(n.dist * 1000) + 'm' : n.dist.toFixed(1) + 'km';
+            html += `<div class="nearby-item"><div class="item-dot" style="background:${brandColors[n.brandKey]};"></div><span class="item-name">${n.label}</span><span class="item-dist">${distStr}</span></div>`;
+          });
+        }
+        html += `</div>`;
+        return;
+      }
+
+      // 通常ブランドの場合
+      const stores = brandStoresMap[selectedBrand];
+      if (!stores) return;
+      stores.forEach(store => {
+        const nearby = allStoresIndex
+          .filter(s => s.brandKey !== selectedBrand)
+          .map(s => ({ ...s, dist: haversineKm(store.lat, store.lng, s.lat, s.lng) }))
+          .filter(s => s.dist <= 3.0)
+          .sort((a, b) => a.dist - b.dist);
+
+        html += `<div class="nearby-store-group">`;
+        html += `<div class="nearby-store-title"><div class="dot" style="background:${brandColors[selectedBrand]};"></div>${store.label}</div>`;
+        if (nearby.length === 0) {
+          html += `<div class="nearby-empty">3km圏内に競合なし</div>`;
+        } else {
+          nearby.forEach(n => {
+            const distStr = n.dist < 1 ? Math.round(n.dist * 1000) + 'm' : n.dist.toFixed(1) + 'km';
+            html += `<div class="nearby-item"><div class="item-dot" style="background:${brandColors[n.brandKey]};"></div><span class="item-name">${n.label}</span><span class="item-dist">${distStr}</span></div>`;
+          });
+        }
+        html += `</div>`;
+      });
+    });
+
+    content.innerHTML = html;
+    panel.classList.add('visible');
+  }
+
+  function updateCircleStyles() {
+    const allItems = div.querySelectorAll('.legend-item[data-brand]');
+
+    if (activeBrands.size === 0) {
+      Object.keys(brandCircles).forEach(brand => {
+        const s = defaultStyles[brand];
+        brandCircles[brand].forEach(c => c.setStyle({ fillOpacity: s.fillOpacity, weight: s.weight }));
+      });
+      allItems.forEach(el => { el.classList.remove('active'); el.classList.remove('dimmed'); });
+    } else {
+      Object.keys(brandCircles).forEach(brand => {
+        if (activeBrands.has(brand)) {
+          brandCircles[brand].forEach(c => c.setStyle({ fillOpacity: 0.25, weight: 3 }));
+        } else {
+          brandCircles[brand].forEach(c => c.setStyle({ fillOpacity: 0.02, weight: 0.5 }));
+        }
+      });
+      allItems.forEach(el => {
+        if (activeBrands.has(el.dataset.brand)) {
+          el.classList.add('active');
+          el.classList.remove('dimmed');
+        } else {
+          el.classList.remove('active');
+          el.classList.add('dimmed');
+        }
+      });
+    }
+
+    updateNearbyPanel();
+  }
+
+  div.querySelectorAll('.legend-item[data-brand]').forEach(item => {
+    L.DomEvent.disableClickPropagation(item);
+    item.addEventListener('click', function() {
+      const brand = this.dataset.brand;
+      if (activeBrands.has(brand)) {
+        activeBrands.delete(brand);
+      } else {
+        activeBrands.add(brand);
+      }
+      updateCircleStyles();
+    });
+  });
+
+  return div;
+};
+legend.addTo(map);
+
+// ========== TOGGLE CONTROLS ==========
+document.getElementById('toggleRstretch').addEventListener('change', function() {
+  this.checked ? map.addLayer(rstretchLayer) : map.removeLayer(rstretchLayer);
+});
+document.getElementById('toggleStretch').addEventListener('change', function() {
+  if (this.checked) {
+    map.addLayer(drstretchLayer);
+    map.addLayer(otherStretchLayer);
+  } else {
+    map.removeLayer(drstretchLayer);
+    map.removeLayer(otherStretchLayer);
+  }
+});
+document.getElementById('toggleBodycare').addEventListener('change', function() {
+  if (this.checked) {
+    map.addLayer(rirakuruLayer);
+    map.addLayer(raffineLayer);
+    map.addLayer(otherBodycareLayer);
+  } else {
+    map.removeLayer(rirakuruLayer);
+    map.removeLayer(raffineLayer);
+    map.removeLayer(otherBodycareLayer);
+  }
+});
+document.getElementById('toggleBlanks').addEventListener('change', function() {
+  this.checked ? map.addLayer(blankLayer) : map.removeLayer(blankLayer);
+});
+document.getElementById('toggleRadius').addEventListener('change', function() {
+  this.checked ? map.addLayer(radiusLayer) : map.removeLayer(radiusLayer);
+});
+</script>
+</body>
+</html>
