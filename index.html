@@ -438,8 +438,8 @@ const brandColors = {
 
 // 候補エリア定義（商圏半径がブランドと異なる）
 const candidateAreas = {
-  candidateYamashina: { label: '候補: 山科', lat: 34.970, lng: 135.822, radiusM: 2500 },
-  candidateOtsu: { label: '候補: 大津', lat: 35.005, lng: 135.868, radiusM: 4000 },
+  candidateYamashina: { label: '候補: 山科', lat: 34.970, lng: 135.822, radiusM: 3000 },
+  candidateOtsu: { label: '候補: 大津', lat: 35.005, lng: 135.868, radiusM: 5000 },
 };
 
 const allStoresIndex = [
@@ -546,7 +546,7 @@ otherBodycareStores.forEach(s => {
 // ========== BLANK ZONES ==========
 // 山科
 const yamashimaCircle = L.circle([34.970, 135.822], {
-  radius: 2500, color: '#c9a84c', fillColor: '#c9a84c',
+  radius: 3000, color: '#c9a84c', fillColor: '#c9a84c',
   fillOpacity: 0.12, weight: 2.5, dashArray: '8,6'
 });
 yamashimaCircle.addTo(blankLayer);
@@ -561,7 +561,7 @@ L.marker([34.970, 135.822], {
 
 // 大津
 const otsuCircle = L.circle([35.005, 135.868], {
-  radius: 4000, color: '#c9a84c', fillColor: '#c9a84c',
+  radius: 5000, color: '#c9a84c', fillColor: '#c9a84c',
   fillOpacity: 0.12, weight: 2.5, dashArray: '8,6'
 });
 otsuCircle.addTo(blankLayer);
@@ -594,8 +594,8 @@ legend.onAdd = function() {
     <div class="legend-item" data-brand="otherBodycare"><div class="legend-dot" style="background:#26a69a;"></div> 他ボディケア（37店舗）</div>
     <div class="legend-divider"></div>
     <div class="legend-section">出店候補エリア（クリックで圏内店舗表示）</div>
-    <div class="legend-item" data-brand="candidateYamashina"><div class="legend-dot" style="background:transparent; border:2.5px dashed #c9a84c;"></div> 山科（半径2.5km）</div>
-    <div class="legend-item" data-brand="candidateOtsu"><div class="legend-dot" style="background:transparent; border:2.5px dashed #c9a84c;"></div> 大津（半径4km）</div>
+    <div class="legend-item" data-brand="candidateYamashina"><div class="legend-dot" style="background:transparent; border:2.5px dashed #c9a84c;"></div> 山科（半径3km）</div>
+    <div class="legend-item" data-brand="candidateOtsu"><div class="legend-dot" style="background:transparent; border:2.5px dashed #c9a84c;"></div> 大津（半径5km）</div>
   `;
 
   // 凡例クリックで商圏円をハイライト（複数選択対応）
