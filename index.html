@@ -182,42 +182,45 @@
     .layer-control label { margin-bottom: 1px; }
     .layer-control input[type="checkbox"] { width: 14px; height: 14px; }
 
-    /* 凡例: 左下（少しコンパクト化） */
+    /* 凡例: 左下（さらにコンパクト化） */
     .legend {
-      max-width: 200px;
-      padding: 8px 12px;
-      font-size: 10px;
-      line-height: 1.5;
+      max-width: 175px;
+      padding: 6px 10px;
+      font-size: 9.5px;
+      line-height: 1.4;
     }
-    .legend h4 { font-size: 10px; margin-bottom: 4px; }
-    .legend-section { font-size: 8px; }
-    .legend-dot { width: 9px; height: 9px; }
-    .legend-item { padding: 1px 3px; gap: 6px; }
-    .legend-divider { margin: 4px 0; }
+    .legend h4 { font-size: 9.5px; margin-bottom: 3px; padding-bottom: 3px; }
+    .legend h4 span { display: none; }
+    .legend-section { font-size: 7.5px; margin-top: 2px; }
+    .legend-dot { width: 8px; height: 8px; }
+    .legend-item { padding: 1px 2px; gap: 5px; }
+    .legend-divider { margin: 3px 0; }
 
     /* 商圏内店舗パネル: 右下カード（凡例と干渉しない） */
     .nearby-panel {
       position: fixed;
       top: auto;
-      bottom: 10px;
+      bottom: 4px;
       left: auto;
-      right: 10px;
-      width: 55vw;
-      max-width: 260px;
-      max-height: 40vh;
-      border-radius: 10px;
-      box-shadow: 0 2px 16px rgba(0,0,0,0.22);
+      right: 4px;
+      width: 48vw;
+      max-width: 220px;
+      max-height: 35vh;
+      border-radius: 8px;
+      box-shadow: 0 2px 14px rgba(0,0,0,0.22);
     }
     .nearby-panel-header {
-      border-radius: 10px 10px 0 0;
-      padding: 8px 12px;
-      font-size: 11px;
+      border-radius: 8px 8px 0 0;
+      padding: 6px 10px;
+      font-size: 10px;
     }
-    .nearby-store-group { padding: 6px 10px; }
-    .nearby-store-title { font-size: 11px; margin-bottom: 4px; }
-    .nearby-item { font-size: 10px; gap: 4px; padding: 2px 0; }
-    .nearby-item .item-dist { font-size: 9px; }
-    .nearby-empty { font-size: 10px; }
+    .nearby-store-group { padding: 5px 8px; }
+    .nearby-store-title { font-size: 10px; margin-bottom: 3px; }
+    .nearby-store-title .dot { width: 8px; height: 8px; }
+    .nearby-item { font-size: 9px; gap: 3px; padding: 1.5px 0; }
+    .nearby-item .item-dot { width: 6px; height: 6px; }
+    .nearby-item .item-dist { font-size: 8px; }
+    .nearby-empty { font-size: 9px; }
 
     .blank-zone-label { font-size: 10px; padding: 3px 8px; }
   }
