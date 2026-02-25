@@ -182,7 +182,10 @@
     .layer-control label { margin-bottom: 1px; }
     .layer-control input[type="checkbox"] { width: 14px; height: 14px; }
 
-    /* 凡例: 左下（さらにコンパクト化） */
+    /* 凡例: 左下（コンパクト化 + 下揃え） */
+    .leaflet-bottom.leaflet-left .leaflet-control {
+      margin-bottom: 24px !important;
+    }
     .legend {
       max-width: 175px;
       padding: 6px 10px;
@@ -196,11 +199,11 @@
     .legend-item { padding: 1px 2px; gap: 5px; }
     .legend-divider { margin: 3px 0; }
 
-    /* 商圏内店舗パネル: 右下カード（凡例と干渉しない） */
+    /* 商圏内店舗パネル: 右下カード（凡例と下端を揃える） */
     .nearby-panel {
       position: fixed;
       top: auto;
-      bottom: 4px;
+      bottom: 24px;
       left: auto;
       right: 4px;
       width: 48vw;
