@@ -182,10 +182,7 @@
     .layer-control label { margin-bottom: 1px; }
     .layer-control input[type="checkbox"] { width: 14px; height: 14px; }
 
-    /* 凡例: 左下（コンパクト化 + 下揃え） */
-    .leaflet-bottom.leaflet-left .leaflet-control {
-      margin-bottom: 24px !important;
-    }
+    /* 凡例: 左下（コンパクト化） */
     .legend {
       max-width: 175px;
       padding: 6px 10px;
@@ -199,11 +196,11 @@
     .legend-item { padding: 1px 2px; gap: 5px; }
     .legend-divider { margin: 3px 0; }
 
-    /* 商圏内店舗パネル: 右下カード（凡例と下端を揃える） */
+    /* 商圏内店舗パネル: 右下カード（JSで凡例と下端を揃える） */
     .nearby-panel {
       position: fixed;
       top: auto;
-      bottom: 24px;
+      bottom: 10px;
       left: auto;
       right: 4px;
       width: 48vw;
@@ -680,6 +677,16 @@ legend.onAdd = function() {
 
     content.innerHTML = html;
     panel.classList.add('visible');
+    alignNearbyToLegend();
+  }
+
+  function alignNearbyToLegend() {
+    if (window.innerWidth > 768) return;
+    const legend = document.querySelector('.legend');
+    const panel = document.getElementById('nearbyPanel');
+    if (!legend || !panel) return;
+    const legendBottom = window.innerHeight - legend.getBoundingClientRect().bottom;
+    panel.style.bottom = legendBottom + 'px';
   }
 
   function updateCircleStyles() {
